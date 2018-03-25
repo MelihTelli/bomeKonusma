@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+from PyQt5 import  QtCore, QtGui, QtWidgets
+from PyQt5.QtMultimedia import *
 
-from PyQt5 import QtCore, QtGui, QtWidgets, Qt
 import time
 import socket
 import json
@@ -10,12 +11,13 @@ import datetime
 import random
 from Crypto.Cipher import AES
 import os
+import pyglet
 
 
 class Ui_MainWindow(object):
     def __init__(self):
-        self.isim = "Melih"
-        self.id_kull = datetime.datetime.now().microsecond + random.randint(100000, 999999)
+        self.isim="Melih"
+        self.id_kull = datetime.datetime.now().microsecond + random.randint(100000,999999)
         self.istemci = Istemci()
         self.mesajlar = ""
         self.msjsayisi = 0
@@ -25,6 +27,8 @@ class Ui_MainWindow(object):
         self.glnmsjsayisi = []
         self.kullanicilar.append(self.id_kull)
         self.glnmsjsayisi.append(self.msjsayisi)
+
+
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -67,6 +71,12 @@ class Ui_MainWindow(object):
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
 
+        self.statusRenkLabel = QtWidgets.QLabel()
+        self.statusYaziLabel = QtWidgets.QLabel()
+        self.statusbar.addWidget(self.statusRenkLabel)
+        self.statusbar.addWidget(self.statusYaziLabel)
+
+
         self.actionBa_lan = QtWidgets.QAction(MainWindow)
         self.actionBa_lan.setObjectName("actionBa_lan")
 
@@ -82,10 +92,18 @@ class Ui_MainWindow(object):
 
         self.menubar.addAction(self.menuMen.menuAction())
         self.menubar.triggered.connect(self.menuClick)
+        self.lineEdit.returnPressed.connect(self.lineEditEnterOlay)
 
         self.retranslateUi(MainWindow)
 
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+        self.durumTimer = QtCore.QTimer()
+        self.durumTimer.timeout.connect(self.durumKontrol)
+        self.durumTimer.start(500)
+
+    def lineEditEnterOlay(self):
+        self.gonderClick()
 
     def gelenMesajKntTimer(self):
         if self.istemci.mesajAl() == "boss":
@@ -99,31 +117,53 @@ class Ui_MainWindow(object):
                 if self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])] == gelenmsj[3]:
 
                     pass
-                elif gelenmsj[3] > self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])]:
-
+                elif gelenmsj[3] > self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])] :
                     self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])] = gelenmsj[3]
                     self.mesajlar += gelenmsj[0] + " : " + gelenmsj[1] + "\n"
                     self.textEdit.setText(self.mesajlar)
+                    self.scbar = QtWidgets.QScrollBar()
+                    self.textEdit.setVerticalScrollBar(self.scbar)
+                    self.scbar.setValue(self.scbar.maximum())
 
 
-            else:  # gelenmsj[2] in self.kullanicilar:
+
+            else :
                 self.kullanicilar.append(gelenmsj[2])
                 self.glnmsjsayisi.append(gelenmsj[3])
                 self.mesajlar += gelenmsj[0] + " : " + gelenmsj[1] + "\n"
                 self.textEdit.setText(self.mesajlar)
+                self.scbar = QtWidgets.QScrollBar()
+                self.textEdit.setVerticalScrollBar(self.scbar)
+                self.scbar.setValue(self.scbar.maximum())
+
+
 
     def gonderClick(self):
-
+        self.lineEdit.setFocus()
         if self.lineEdit.text() == "":
             pass
         else:
             self.msjsayisi += 1
-            gondmess = [self.isim, self.lineEdit.text(), self.id_kull, self.msjsayisi]
+            gondmess = [self.isim,self.lineEdit.text(),self.id_kull,self.msjsayisi]
             gondmess = self.encrypt(json.dumps(gondmess))
 
             self.istemci.mesajGonder(gondmess)
 
             self.lineEdit.clear()
+
+            try:
+                self.istemci.mesajGonder(gondmess)
+                self.lineEdit.clear()
+            except:
+                Dilog = QtWidgets.QDialog()
+                uyari = UyariDialog()
+                uyari.setupUi(Dilog)
+                uyari.label.setText("Bağlantı Hatası Oluştu Veya Bağlantı kurulmadı.")
+                Dilog.exec()
+
+
+
+
 
     def baglantiClick(self):
         if self.istemci.durum():
@@ -131,7 +171,7 @@ class Ui_MainWindow(object):
         else:
             host = self.uiB.lineEdit.text()
             port = self.uiB.lineEdit_2.text()
-            self.isim = self.uiB.lineEdit_3.text()
+            self.isim= self.uiB.lineEdit_3.text()
 
             print("host : " + host)
             print("port : " + port)
@@ -144,8 +184,9 @@ class Ui_MainWindow(object):
 
             self.FormDailog.close()
 
-    def menuClick(self, action):
-        if action.text() == "&Bağlan":
+
+    def menuClick(self,action):
+        if action.text()=="&Bağlan":
             self.FormDailog = QtWidgets.QDialog()
             self.uiB = Baglan_Ui()
             self.uiB.setupUi(self.FormDailog)
@@ -160,22 +201,42 @@ class Ui_MainWindow(object):
             uyari.label.setText("Bağlantıyı kesmek istediğinize emin misiniz ??")
 
             if Dilog.exec_():
-                self.timer.stop()
-                self.istemci.durdur()
+                try:
+
+                    self.timer.stop()
+                    self.istemci.durdur()
+
+                except:
+                    pass
+                os.execl(sys.executable, os.path.abspath(__file__), *sys.argv)
+                #os.execl(sys.executable, sys.executable, *sys.argv)
+
             else:
                 pass
 
+
+
+    def durumKontrol(self):
+        if self.istemci.durum():
+            self.statusRenkLabel.setStyleSheet("QLabel {background-color: green;}")
+            self.statusYaziLabel.setText("Bağlantı Var")
+        else:
+            self.statusYaziLabel.setText("Bağlantı Yok")
+            self.statusRenkLabel.setStyleSheet("QLabel {background-color: red;}")
+
+
     # Şifreleme Fonksiyonları
-    def pad(self, s):
+    def pad(self,s):
         return s + ((16 - len(s) % 16) * '{')
 
-    def encrypt(self, plaintext):
+    def encrypt(self ,plaintext):
         return self.cipher.encrypt(self.pad(plaintext))
 
-    def decrypt(self, ciphertext):
+    def decrypt(self,ciphertext):
         dec = str(self.cipher.decrypt(ciphertext).decode('utf-8'))
         l = dec.count('{')
         return dec[:len(dec) - l]
+
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -187,15 +248,16 @@ class Ui_MainWindow(object):
         self.actionTema.setText(_translate("MainWindow", "&Tema"))
 
 
+
 class Istemci():
 
     def __init__(self):
         global mesajj
-        mesajj = "boss"
+        mesajj= b''
         global onoffknt
         onoffknt = False
 
-    def baslat(self, h, p):
+    def baslat(self,h,p):
         global onoffknt
         self.host = h
         self.port = p
@@ -216,32 +278,40 @@ class Istemci():
             Dilog.exec()
             onoffknt = False
 
+
     def durdur(self):
         self.sock.close()
         global onoffknt
         onoffknt = False
+
 
     def gelenMessaj(self):
         global mesajj
         global onoffknt
         try:
             while True:
-                data = self.sock.recv(self.tampon)
+                data =  self.sock.recv(self.tampon)
 
-                if data == "":
+                if data =="":
                     pass
                 elif data == bytes():
-                    mesajj = "Server Baglantı koptu"
+                    onoffknt = False
+                    Dilog = QtWidgets.QDialog()
+                    uyari = UyariDialog()
+                    uyari.setupUi(Dilog)
+                    uyari.label.setText("Server Bağlantı Koptu")
+                    Dilog.exec()
                     break
                 else:
                     mesajj = data
 
                 time.sleep(0.02)
-        except Exception as problem:
+        except Exception as problem :
             print(problem)
             onoffknt = False
 
-    def mesajGonder(self, messaj):
+
+    def mesajGonder(self,messaj):
         self.sock.send(messaj)
 
     def mesajAl(self):
@@ -249,6 +319,8 @@ class Istemci():
 
     def durum(self):
         return onoffknt
+
+
 
 
 class Baglan_Ui(object):
@@ -273,20 +345,21 @@ class Baglan_Ui(object):
 
         self.gridLayout.addWidget(self.pushButton, 4, 1, 1, 1)
 
+
         self.lineEdit_2 = QtWidgets.QLineEdit(Form)
         self.lineEdit_2.setObjectName("lineEdit_2")
-        self.lineEdit_2.setText("4446")
+        self.lineEdit_2.setText("31312")
         self.gridLayout.addWidget(self.lineEdit_2, 2, 1, 1, 1)
 
         self.lineEdit = QtWidgets.QLineEdit(Form)
         self.lineEdit.setObjectName("lineEdit")
-        self.lineEdit.setText("127.0.0.1")
+        self.lineEdit.setText("192.168.1.36")
         self.gridLayout.addWidget(self.lineEdit, 0, 1, 1, 1)
 
         self.lineEdit_3 = QtWidgets.QLineEdit(Form)
         self.lineEdit_3.setObjectName("lineEdit_3")
         self.lineEdit_3.setText("Melih")
-        self.gridLayout.addWidget(self.lineEdit_3, 3, 1, 1, 1)
+        self.gridLayout.addWidget(self.lineEdit_3,3,1,1,1)
 
         self.label_3 = QtWidgets.QLabel(Form)
         self.label_3.setObjectName("label_3")
@@ -303,6 +376,8 @@ class Baglan_Ui(object):
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
+
+
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "BAĞLAN"))
@@ -310,6 +385,7 @@ class Baglan_Ui(object):
         self.label.setText(_translate("Form", "PORT :"))
         self.pushButton.setText(_translate("Form", "Bağlan"))
         self.label_3.setText(_translate("Form", "İsim :"))
+
 
 
 class UyariDialog(object):
@@ -323,7 +399,7 @@ class UyariDialog(object):
         self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
         self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.gridLayout.addWidget(self.buttonBox, 1, 0, 1, 1)
 
@@ -338,12 +414,16 @@ class UyariDialog(object):
         self.label.setText(_translate("Dialog", "TextLabel"))
 
 
+
+
 if __name__ == "__main__":
     def myExitHandler():
-        ui.istemci.durdur()
-        ui.timer.stop()
+        try:
+            ui.istemci.durdur()
+            ui.timer.stop()
+        except:
+            pass
         os._exit(0)
-
 
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
@@ -351,6 +431,7 @@ if __name__ == "__main__":
     ui.setupUi(MainWindow)
     MainWindow.show()
     app.aboutToQuit.connect(myExitHandler)
+
 
     sys.exit(app.exec_())
 

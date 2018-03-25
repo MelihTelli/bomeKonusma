@@ -64,4 +64,4 @@ class Server():
 
 
 if __name__ =="__main__":
-    server = Server("192.168.1.34",31312,5)
+    server = Server("127.0.0.1",31312,5)

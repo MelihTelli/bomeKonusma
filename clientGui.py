@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 from PyQt5 import  QtCore, QtGui, QtWidgets
-from PyQt5.QtMultimedia import *
-
 import time
 import socket
 import json
@@ -11,7 +9,7 @@ import datetime
 import random
 from Crypto.Cipher import AES
 import os
-import pyglet
+
 
 
 class Ui_MainWindow(object):
@@ -106,35 +104,38 @@ class Ui_MainWindow(object):
         self.gonderClick()
 
     def gelenMesajKntTimer(self):
-        if self.istemci.mesajAl() == "boss":
-            pass
-        else:
-            print(self.kullanicilar)
-            print(self.glnmsjsayisi)
-            gelenmsj = json.loads(self.decrypt(self.istemci.mesajAl()))
+        try:
+            gelenmsj = self.istemci.mesajAl()
+            if gelenmsj == b'':
+                pass
+            else:
+                gelenmsj = json.loads(self.decrypt(self.istemci.mesajAl()))
 
-            if gelenmsj[2] in self.kullanicilar:
-                if self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])] == gelenmsj[3]:
+                if gelenmsj[2] in self.kullanicilar:
+                    if self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])] == gelenmsj[3]:
 
-                    pass
-                elif gelenmsj[3] > self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])] :
-                    self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])] = gelenmsj[3]
+                        pass
+                    elif gelenmsj[3] > self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])] :
+                        self.glnmsjsayisi[self.kullanicilar.index(gelenmsj[2])] = gelenmsj[3]
+                        self.mesajlar += gelenmsj[0] + " : " + gelenmsj[1] + "\n"
+                        self.textEdit.setText(self.mesajlar)
+                        self.scbar = QtWidgets.QScrollBar()
+                        self.textEdit.setVerticalScrollBar(self.scbar)
+                        self.scbar.setValue(self.scbar.maximum())
+
+
+
+                else :
+                    self.kullanicilar.append(gelenmsj[2])
+                    self.glnmsjsayisi.append(gelenmsj[3])
                     self.mesajlar += gelenmsj[0] + " : " + gelenmsj[1] + "\n"
                     self.textEdit.setText(self.mesajlar)
                     self.scbar = QtWidgets.QScrollBar()
                     self.textEdit.setVerticalScrollBar(self.scbar)
                     self.scbar.setValue(self.scbar.maximum())
+        except:
+            pass
 
-
-
-            else :
-                self.kullanicilar.append(gelenmsj[2])
-                self.glnmsjsayisi.append(gelenmsj[3])
-                self.mesajlar += gelenmsj[0] + " : " + gelenmsj[1] + "\n"
-                self.textEdit.setText(self.mesajlar)
-                self.scbar = QtWidgets.QScrollBar()
-                self.textEdit.setVerticalScrollBar(self.scbar)
-                self.scbar.setValue(self.scbar.maximum())
 
 
 

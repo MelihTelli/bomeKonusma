@@ -9,6 +9,7 @@ import datetime
 import random
 from Crypto.Cipher import AES
 import os
+import notify2
 
 
 
@@ -100,6 +101,17 @@ class Ui_MainWindow(object):
         self.durumTimer.timeout.connect(self.durumKontrol)
         self.durumTimer.start(500)
 
+
+    # icon pathınızı kendinize göre ayarlayınız :D
+    def bildirimGoster(self,person, message):
+        ICON_PATH = "/usr/share/icons/Vibrancy-Kali/actions/scalable/im-message-new.svg"
+        notify2.init(notify2.get_app_name())
+        n = notify2.Notification(person, message, ICON_PATH)
+        n.set_urgency(notify2.URGENCY_CRITICAL)
+        n.set_timeout(100)
+        n.show()
+
+
     def lineEditEnterOlay(self):
         self.gonderClick()
 
@@ -122,6 +134,7 @@ class Ui_MainWindow(object):
                         self.scbar = QtWidgets.QScrollBar()
                         self.textEdit.setVerticalScrollBar(self.scbar)
                         self.scbar.setValue(self.scbar.maximum())
+                        self.bildirimGoster(gelenmsj[0],gelenmsj[1])
 
 
 
